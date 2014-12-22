@@ -152,7 +152,14 @@ if (-not (Test-Path Variable:Global:$VcsPromptStatusesVariableName)) {
 }
 
 function Global:Write-VcsStatus {
-    Get-Variable -Name $VcsPromptStatusesVariableName -Scope Global -ValueOnly | foreach { $_.Invoke() }
+    Get-Variable -Name $VcsPromptStatusesVariableName -Scope Global -ValueOnly | foreach { 
+        try {
+            $_.Invoke()
+        }
+        catch {
+            Write-Error "A Write-VcsStatus scriptblock failed with the error: $($_.Exception.InnerException)"
+        }
+    }
 }
 
 # Add scriptblock that will execute for Write-VcsStatus
