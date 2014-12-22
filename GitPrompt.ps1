@@ -145,13 +145,24 @@ function Write-GitStatus($status) {
     }
 }
 
-if(!(Test-Path Variable:Global:VcsPromptStatuses)) {
-    $Global:VcsPromptStatuses = @()
+$VcsPromptStatusesVariableName = "VcsPromptStatuses"
+
+if (-not (Test-Path Variable:Global:$VcsPromptStatusesVariableName)) {
+    New-Variable -Name $VcsPromptStatusesVariableName -Value @() -Scope Global
 }
-function Global:Write-VcsStatus { $Global:VcsPromptStatuses | foreach { & $_ } }
+
+function Global:Write-VcsStatus {
+    Get-Variable -Name $VcsPromptStatusesVariableName -Scope Global -ValueOnly | foreach { $_.Invoke() }
+}
 
 # Add scriptblock that will execute for Write-VcsStatus
-$Global:VcsPromptStatuses += {
+(Get-Variable -Name $VcsPromptStatusesVariableName -Scope Global).Value += {
     $Global:GitStatus = Get-GitStatus
     Write-GitStatus $GitStatus
 }
+
+$ExecutionContext.SessionState.Module.OnRemove = ({
+    if (Test-Path Variable:Global:$VcsPromptStatusesVariableName) {
+        Remove-Variable -Name $VcsPromptStatusesVariableName -Scope Global
+    }
+}.GetNewClosure())
